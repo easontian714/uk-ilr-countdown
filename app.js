@@ -173,13 +173,10 @@ function render() {
 
 function renderAuthState() {
   const button = document.querySelector("#auth-button");
-  const status = document.querySelector("#auth-status");
   if (currentUser) {
     button.textContent = "退出登录";
-    status.textContent = `已私密同步：${currentUser.email || "Google 账号"}`;
   } else {
     button.textContent = "使用 Google 登录";
-    status.textContent = "登录后可私密同步资料";
   }
 }
 

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#12372a" />
+    <title>英国永居倒计时</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header>
+        <p class="eyebrow">UK SETTLEMENT PLANNER</p>
+        <h1>英国永居申请倒计时</h1>
+      </header>
+
+      <section class="countdown-card" aria-live="polite">
+        <div class="countdown-value">
+          <p class="countdown-number" id="days-remaining">--</p>
+          <p class="countdown-label" id="countdown-label">天</p>
+        </div>
+        <p class="countdown-detail" id="countdown-detail">正在计算…</p>
+        <div class="progress-section" aria-label="永居申请资格进度">
+          <div class="progress-heading">
+            <span>申请资格进度</span>
+            <strong id="progress-percent">--%</strong>
+          </div>
+          <progress id="eligibility-progress" max="100" value="0">0%</progress>
+          <p id="progress-detail" class="progress-detail">正在计算…</p>
+        </div>
+      </section>
+
+      <section class="dates-grid" aria-label="行程日期">
+        <article class="date-card">
+          <div class="date-card-heading">
+            <p>签证类别</p>
+            <button class="edit-date-button open-settings" type="button">修改</button>
+          </div>
+          <strong>
+            <span id="visa-category-label">Skilled Worker</span>
+            <span class="info-tooltip visa-policy-tooltip">
+              <button class="info-button" type="button" aria-label="查看 Skilled Worker 永居政策">?</button>
+              <span class="tooltip-content" role="tooltip">
+                <a href="https://www.gov.uk/indefinite-leave-to-remain-tier-2-t2-skilled-worker-visa" target="_blank" rel="noopener noreferrer">查看 GOV.UK 永居政策 ↗</a>
+              </span>
+            </span>
+          </strong>
+        </article>
+        <article class="date-card">
+          <div class="date-card-heading">
+            <p>合资格居留起算日</p>
+            <button class="edit-date-button open-settings" type="button">修改</button>
+          </div>
+          <strong id="start-date">--</strong>
+        </article>
+        <article class="date-card">
+          <p>满 5 年日期</p>
+          <strong id="five-year-date">--</strong>
+        </article>
+        <article class="date-card accent">
+          <p>最早申请日期</p>
+          <strong id="earliest-date">--</strong>
+        </article>
+      </section>
+
+      <section class="notice">
+        <h2>连续居留：离境限制</h2>
+        <p>在合资格居留期内，任意滚动 12 个月离开英国通常不得超过 <strong>180 天</strong>。</p>
+      </section>
+
+      <aside class="absence-summary" aria-live="polite">
+        <p class="absence-label">
+          任意 12 个月内的最高离境天数
+          <span class="info-tooltip">
+            <button class="info-button" type="button" aria-label="查看离境天数计算说明">?</button>
+            <span class="tooltip-content" role="tooltip">
+              本网页按出境日和回英国当日不计入、两者之间的整日计入；计划中行程会作为预测值。
+              <br /><br />
+              Home Office 的口径是：只计算完整的离境日；不足 24 小时的部分日不计入。
+              <a href="https://www.gov.uk/government/publications/continuous-residence-caseworker-guidance/continuous-residence-guidance-accessible-version" target="_blank" rel="noopener noreferrer">查看官方指引 ↗</a>
+            </span>
+          </span>
+        </p>
+        <p class="absence-number"><span id="absence-days">--</span><span class="absence-limit"> / 180</span> <small>天</small></p>
+        <progress id="absence-progress" class="absence-progress" max="180" value="0">0 / 180</progress>
+        <p id="absence-remaining" class="absence-remaining">正在计算…</p>
+        <p id="absence-window" class="absence-window">正在根据旅行记录计算…</p>
+      </aside>
+
+      <section class="trips-section" aria-labelledby="trips-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">TRAVEL LOG</p>
+            <h2 id="trips-heading">旅行记录</h2>
+          </div>
+          <div class="section-actions">
+            <button class="add-trip-button" type="button" id="add-trip">新增行程</button>
+            <details class="trip-actions-menu">
+              <summary aria-label="更多旅行记录操作" title="更多操作">•••</summary>
+              <div class="trip-actions-popover">
+                <button type="button" id="export-trips">批量导出</button>
+                <button class="danger-menu-button" type="button" id="clear-trips">一键清空</button>
+              </div>
+            </details>
+          </div>
+        </div>
+        <p class="section-intro">支持输入计划中的行程，并将其纳入离境天数计算。</p>
+        <div id="trips-list" class="trips-list"></div>
+        <nav id="trips-pagination" class="trips-pagination" aria-label="旅行记录分页" hidden></nav>
+      </section>
+
+      <p class="disclaimer">本工具仅供个人规划参考，不构成移民法律意见。</p>
+    </main>
+
+    <dialog id="settings-dialog">
+      <form method="dialog" id="settings-form">
+        <h2>签证信息</h2>
+        <label for="visa-category-input">签证类别</label>
+        <select id="visa-category-input" name="visa-category">
+          <option value="skilled-worker">Skilled Worker</option>
+        </select>
+        <label for="start-date-input">合资格居留起算日</label>
+        <input id="start-date-input" name="start-date" type="date" required />
+        <p class="form-help">系统会按“满 5 年前 28 天”计算最早申请日。</p>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel">取消</button>
+          <button class="primary-button" value="save">保存</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="trip-dialog">
+      <form method="dialog" id="trip-form">
+        <h2 id="trip-dialog-title">新增行程</h2>
+        <label for="trip-country">国家</label>
+        <input id="trip-country" name="country" type="text" placeholder="例如：美国" required maxlength="40" />
+        <label for="trip-city-input">城市（可多选）</label>
+        <div class="city-picker">
+          <div id="trip-city-tags" class="city-tags" aria-live="polite"></div>
+          <div class="city-input-row">
+            <input id="trip-city-input" type="text" placeholder="输入城市后添加" maxlength="40" />
+            <button id="add-trip-city" class="add-city-button" type="button">添加</button>
+          </div>
+        </div>
+        <div class="date-inputs">
+          <div>
+            <label for="trip-start">离开英国</label>
+            <input id="trip-start" name="start" type="date" required />
+          </div>
+          <div>
+            <label for="trip-end">回到英国</label>
+            <input id="trip-end" name="end" type="date" required />
+          </div>
+        </div>
+        <label for="trip-note">备注（可选）</label>
+        <input id="trip-note" name="note" type="text" placeholder="例如：费城行程" maxlength="120" />
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel" formnovalidate>取消</button>
+          <button class="primary-button" value="save">保存行程</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>

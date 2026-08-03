@@ -362,6 +362,7 @@ function openSettingsDialog() {
   document.querySelector("#start-date-input").value = startDateValue;
   document.querySelector("#visa-category-input").value = localStorage.getItem(VISA_CATEGORY_STORAGE_KEY) || DEFAULT_VISA_CATEGORY;
   dialog.showModal();
+  document.querySelector("#settings-dialog-title").focus({ preventScroll: true });
 }
 
 document.querySelectorAll(".open-settings").forEach((button) => {

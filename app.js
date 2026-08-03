@@ -357,8 +357,15 @@ function render() {
 }
 
 const dialog = document.querySelector("#settings-dialog");
+function openSettingsDialog() {
+  const startDateValue = localStorage.getItem(STORAGE_KEY) || DEFAULT_START_DATE;
+  document.querySelector("#start-date-input").value = startDateValue;
+  document.querySelector("#visa-category-input").value = localStorage.getItem(VISA_CATEGORY_STORAGE_KEY) || DEFAULT_VISA_CATEGORY;
+  dialog.showModal();
+}
+
 document.querySelectorAll(".open-settings").forEach((button) => {
-  button.addEventListener("click", () => dialog.showModal());
+  button.addEventListener("click", openSettingsDialog);
 });
 document.querySelector("#settings-form").addEventListener("submit", (event) => {
   const action = event.submitter?.value;

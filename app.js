@@ -559,6 +559,26 @@ document.querySelector("#trips-pagination").addEventListener("click", (event) =>
   renderTrips();
 });
 
+document.querySelector("#export-trips").addEventListener("click", () => {
+  const csvCell = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+  const rows = getTrips()
+    .sort((a, b) => b.startDate.localeCompare(a.startDate))
+    .map((trip) => {
+      const { country, cities } = getTripDestination(trip);
+      return [country, cities.join("、"), trip.startDate, trip.endDate, trip.note];
+    });
+  const csv = [["国家", "城市", "离开英国", "回到英国", "备注"], ...rows]
+    .map((row) => row.map(csvCell).join(","))
+    .join("\r\n");
+  const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "ilr-travel-records.csv";
+  link.click();
+  URL.revokeObjectURL(link.href);
+  document.querySelector(".trip-actions-menu").removeAttribute("open");
+});
+
 document.querySelector("#clear-trips").addEventListener("click", () => {
   if (!confirm("确定要清空全部旅行记录吗？此操作无法撤销。")) return;
   saveTrips([]);

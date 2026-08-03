@@ -217,18 +217,43 @@ async function saveAll() {
   catch (error) { console.error(error); alert("保存到云端失败，请检查网络后重试。"); }
 }
 
-async function loadCloudProfile() {
+async function loadCloudProfile(userId) {
   const [{ data: profile, error: profileError }, { data: trips, error: tripsError }] = await Promise.all([
     cloud.from("ilr_profiles").select("visa_category, qualifying_start_date").maybeSingle(),
     cloud.from("ilr_trips").select("id, country, cities, depart_uk_date, return_uk_date, note").order("depart_uk_date", { ascending: false }),
   ]);
   if (profileError || tripsError) throw profileError || tripsError;
+  if (currentUser?.id !== userId) return;
   if (profile) {
     profileState = { visaCategory: profile.visa_category, startDate: profile.qualifying_start_date, trips: (trips || []).map(mapDatabaseTrip) };
   } else {
     profileState = readLocalProfile();
   }
   currentTripsPage = 1; render(); renderTrips();
+}
+
+let cloudLoadPromise = null;
+let cloudLoadUserId = null;
+function loadCloudProfileOnce(userId) {
+  if (!userId) return Promise.resolve();
+  if (cloudLoadPromise && cloudLoadUserId === userId) return cloudLoadPromise;
+  cloudLoadUserId = userId;
+  cloudLoadPromise = (async () => {
+    try {
+      await loadCloudProfile(userId);
+    } catch (error) {
+      // Ignore failures from a stale request when the user has already changed or signed out.
+      if (currentUser?.id !== userId) return;
+      console.error(error);
+      alert("无法读取云端资料，请稍后刷新重试。");
+    } finally {
+      if (cloudLoadUserId === userId) {
+        cloudLoadPromise = null;
+        cloudLoadUserId = null;
+      }
+    }
+  })();
+  return cloudLoadPromise;
 }
 
 async function handleAuth() {
@@ -351,7 +376,7 @@ async function initialise() {
   currentUser = session?.user || null;
   if (currentUser) {
     localStorage.setItem(AUTH_PROMPT_SEEN_KEY, "true");
-    try { await loadCloudProfile(); } catch (error) { console.error(error); alert("无法读取云端资料，请稍后刷新重试。"); }
+    await loadCloudProfileOnce(currentUser.id);
   } else openAuthPrompt();
   renderAuthState();
 }
@@ -364,7 +389,7 @@ cloud.auth.onAuthStateChange(async (_event, session) => {
     closeAuthPrompt();
   }
   if (currentUser && currentUser.id !== previousUserId) {
-    try { await loadCloudProfile(); } catch (error) { console.error(error); alert("无法读取云端资料，请稍后刷新重试。"); }
+    await loadCloudProfileOnce(currentUser.id);
   }
   if (!currentUser) { profileState = readLocalProfile(); render(); renderTrips(); }
   renderAuthState();

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#12372a" />
     <title>英国永居申请计时器</title>
-    <link rel="stylesheet" href="style.css?v=20260803-0303" />
+    <link rel="stylesheet" href="style.css?v=20260803-0305" />
   </head>
   <body>
     <main class="page-shell">
@@ -144,6 +144,16 @@
       </form>
     </dialog>
 
+    <dialog id="auth-dialog" class="auth-dialog" aria-labelledby="auth-dialog-title">
+      <button type="button" class="auth-dialog-close" id="auth-dialog-close" aria-label="关闭登录提示">×</button>
+      <div class="auth-dialog-content">
+        <p class="eyebrow">PRIVATE PROFILE</p>
+        <h2 id="auth-dialog-title">登录你的资料</h2>
+        <p class="form-help">使用 Google 登录后，你的签证和旅行记录会单独保存。也可以关闭此窗口，继续查看示例资料。</p>
+        <button type="button" class="auth-dialog-login" id="auth-dialog-login">Google 登录</button>
+      </div>
+    </dialog>
+
     <dialog id="trip-dialog">
       <form method="dialog" id="trip-form">
         <h2 id="trip-dialog-title">新增行程</h2>
@@ -177,6 +187,6 @@
     </dialog>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
-    <script src="app.js?v=20260803-0303"></script>
+    <script src="app.js?v=20260803-0305"></script>
   </body>
 </html>

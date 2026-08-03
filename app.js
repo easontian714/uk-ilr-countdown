@@ -247,7 +247,17 @@ async function handleAuth() {
   if (error) alert("无法打开 Google 登录，请稍后重试。");
 }
 
+const authDialog = document.querySelector("#auth-dialog");
+function openAuthPrompt() {
+  if (!currentUser && !authDialog.open) authDialog.showModal();
+}
+function closeAuthPrompt() {
+  if (authDialog.open) authDialog.close();
+}
+
 document.querySelector("#auth-button").addEventListener("click", handleAuth);
+document.querySelector("#auth-dialog-login").addEventListener("click", handleAuth);
+document.querySelector("#auth-dialog-close").addEventListener("click", closeAuthPrompt);
 
 const dialog = document.querySelector("#settings-dialog");
 function openSettingsDialog() { document.querySelector("#start-date-input").value = profileState.startDate; document.querySelector("#visa-category-input").value = profileState.visaCategory; dialog.showModal(); document.querySelector("#settings-dialog-title").focus({ preventScroll: true }); }
@@ -328,17 +338,18 @@ async function initialise() {
   currentUser = user;
   if (currentUser) {
     try { await loadCloudProfile(); } catch (error) { console.error(error); alert("无法读取云端资料，请稍后刷新重试。"); }
-  }
+  } else openAuthPrompt();
   renderAuthState();
 }
 
 cloud.auth.onAuthStateChange(async (_event, session) => {
   const previousUserId = currentUser?.id;
   currentUser = session?.user || null;
+  if (currentUser) closeAuthPrompt();
   if (currentUser && currentUser.id !== previousUserId) {
     try { await loadCloudProfile(); } catch (error) { console.error(error); alert("无法读取云端资料，请稍后刷新重试。"); }
   }
-  if (!currentUser) { profileState = readLocalProfile(); render(); renderTrips(); }
+  if (!currentUser) { profileState = readLocalProfile(); render(); renderTrips(); openAuthPrompt(); }
   renderAuthState();
 });
 

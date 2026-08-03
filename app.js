@@ -17,6 +17,7 @@ let currentUser = null;
 let currentTripsPage = 1;
 let editingTripId = null;
 let editingTripCities = [];
+let authActionPending = false;
 let profileState = readLocalProfile();
 
 const dateFormatter = new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric" });
@@ -181,11 +182,38 @@ function render() {
 
 function renderAuthState() {
   const button = document.querySelector("#auth-button");
+  const dialogButton = document.querySelector("#auth-dialog-login");
+  button.disabled = authActionPending;
+  dialogButton.disabled = authActionPending;
   if (currentUser) {
-    button.textContent = "退出登录";
+    button.textContent = authActionPending ? "正在退出…" : "退出登录";
   } else {
-    button.textContent = "Google 登录";
+    button.textContent = authActionPending ? "正在打开…" : "Google 登录";
   }
+  dialogButton.textContent = authActionPending ? "正在打开 Google 登录…" : "Google 登录";
+}
+
+let toastTimer = null;
+function showToast(message, type = "info", duration = 3200) {
+  const region = document.querySelector("#toast-region");
+  region.replaceChildren();
+  if (toastTimer) window.clearTimeout(toastTimer);
+  const toast = document.createElement("div");
+  toast.className = `toast${type === "info" ? "" : ` is-${type}`}`;
+  toast.setAttribute("role", type === "error" ? "alert" : "status");
+  toast.textContent = message;
+  region.append(toast);
+  toastTimer = window.setTimeout(() => {
+    toast.classList.add("is-leaving");
+    window.setTimeout(() => toast.remove(), 200);
+  }, duration);
+}
+
+function clearAuthCallbackFromUrl() {
+  const url = new URL(window.location.href);
+  ["code", "error", "error_code", "error_description"].forEach((key) => url.searchParams.delete(key));
+  if (/access_token|refresh_token|error|code/.test(url.hash)) url.hash = "";
+  window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
 }
 
 function mapDatabaseTrip(row) {
@@ -218,10 +246,17 @@ async function saveAll() {
 }
 
 async function loadCloudProfile(userId) {
-  const [{ data: profile, error: profileError }, { data: trips, error: tripsError }] = await Promise.all([
-    cloud.from("ilr_profiles").select("visa_category, qualifying_start_date").maybeSingle(),
-    cloud.from("ilr_trips").select("id, country, cities, depart_uk_date, return_uk_date, note").order("depart_uk_date", { ascending: false }),
+  const fetchProfileData = () => Promise.all([
+    cloud.from("ilr_profiles").select("visa_category, qualifying_start_date").eq("user_id", userId).maybeSingle(),
+    cloud.from("ilr_trips").select("id, country, cities, depart_uk_date, return_uk_date, note").eq("user_id", userId).order("depart_uk_date", { ascending: false }),
   ]);
+  let [{ data: profile, error: profileError }, { data: trips, error: tripsError }] = await fetchProfileData();
+  const authError = [profileError, tripsError].find((error) => error?.status === 401 || error?.status === 403);
+  if (authError && currentUser?.id === userId) {
+    const { error: refreshError } = await cloud.auth.refreshSession();
+    if (refreshError) throw refreshError;
+    [{ data: profile, error: profileError }, { data: trips, error: tripsError }] = await fetchProfileData();
+  }
   if (profileError || tripsError) throw profileError || tripsError;
   if (currentUser?.id !== userId) return;
   if (profile) {
@@ -245,7 +280,7 @@ function loadCloudProfileOnce(userId) {
       // Ignore failures from a stale request when the user has already changed or signed out.
       if (currentUser?.id !== userId) return;
       console.error(error);
-      alert("无法读取云端资料，请稍后刷新重试。");
+      showToast("登录成功，但云端资料暂时无法读取。已保留本地资料，请稍后刷新重试。", "error", 6000);
     } finally {
       if (cloudLoadUserId === userId) {
         cloudLoadPromise = null;
@@ -257,28 +292,42 @@ function loadCloudProfileOnce(userId) {
 }
 
 async function handleAuth() {
-  if (currentUser) {
-    const { error } = await cloud.auth.signOut({ scope: "local" });
-    if (error) {
-      console.error(error);
-      alert("退出登录失败，请稍后重试。");
-      return;
-    }
-    currentUser = null;
-    window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
-    renderAuthState();
+  if (authActionPending) {
+    showToast("登录操作正在处理中，请稍候。", "info");
     return;
   }
-  const { error } = await cloud.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${window.location.origin}${window.location.pathname}`,
-      queryParams: { prompt: "select_account" },
-    },
-  });
-  if (error) {
+  authActionPending = true;
+  renderAuthState();
+  try {
+    if (currentUser) {
+      const { error } = await cloud.auth.signOut({ scope: "local" });
+      if (error) throw error;
+      currentUser = null;
+      clearAuthCallbackFromUrl();
+      profileState = readLocalProfile();
+      render();
+      renderTrips();
+      showToast("已退出当前设备上的 Google 账户。", "success");
+      return;
+    }
+
+    showToast("正在打开 Google 登录…", "info", 5000);
+    const { data, error } = await cloud.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}${window.location.pathname}`,
+        queryParams: { prompt: "select_account" },
+      },
+    });
+    if (error) throw error;
+    if (data?.url) window.location.assign(data.url);
+    else throw new Error("OAuth redirect URL was not returned");
+  } catch (error) {
     console.error(error);
-    alert("无法打开 Google 登录，请稍后重试。");
+    showToast(currentUser ? "退出登录失败，请检查网络后重试。" : "无法打开 Google 登录，请检查网络或浏览器设置后重试。", "error", 5000);
+  } finally {
+    authActionPending = false;
+    renderAuthState();
   }
 }
 
@@ -372,24 +421,36 @@ document.addEventListener("pointerdown", (event) => document.querySelectorAll(".
 
 async function initialise() {
   render(); renderTrips();
-  const { data: { session } } = await cloud.auth.getSession();
-  currentUser = session?.user || null;
-  if (currentUser) {
-    localStorage.setItem(AUTH_PROMPT_SEEN_KEY, "true");
-    await loadCloudProfileOnce(currentUser.id);
-  } else openAuthPrompt();
-  renderAuthState();
+  try {
+    const { data: { session }, error } = await cloud.auth.getSession();
+    if (error) throw error;
+    currentUser = session?.user || null;
+    if (currentUser) {
+      localStorage.setItem(AUTH_PROMPT_SEEN_KEY, "true");
+      clearAuthCallbackFromUrl();
+      await loadCloudProfileOnce(currentUser.id);
+    } else openAuthPrompt();
+  } catch (error) {
+    console.error(error);
+    showToast("登录状态读取失败，你仍可使用本地功能并稍后重试。", "error", 5000);
+  } finally {
+    renderAuthState();
+  }
 }
 
-cloud.auth.onAuthStateChange(async (_event, session) => {
+cloud.auth.onAuthStateChange((event, session) => {
   const previousUserId = currentUser?.id;
   currentUser = session?.user || null;
   if (currentUser) {
     localStorage.setItem(AUTH_PROMPT_SEEN_KEY, "true");
     closeAuthPrompt();
+    if (event === "SIGNED_IN") showToast("Google 登录成功，正在同步云端资料…", "success");
   }
   if (currentUser && currentUser.id !== previousUserId) {
-    await loadCloudProfileOnce(currentUser.id);
+    // Supabase auth callbacks must stay synchronous. Deferring database work avoids
+    // deadlocking the auth client while it still holds its internal session lock.
+    const signedInUserId = currentUser.id;
+    window.setTimeout(() => loadCloudProfileOnce(signedInUserId), 0);
   }
   if (!currentUser) { profileState = readLocalProfile(); render(); renderTrips(); }
   renderAuthState();

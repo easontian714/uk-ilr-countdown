@@ -15,6 +15,12 @@ body {
 
 button, input, select { font: inherit; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.toast-region { position: fixed; z-index: 20; top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); display: grid; width: min(360px, calc(100vw - 32px)); gap: 9px; pointer-events: none; }
+.toast { padding: 12px 14px; border: 1px solid rgb(255 255 255 / .16); border-radius: 12px; color: #fff; background: #17352a; box-shadow: 0 12px 30px rgb(18 55 42 / .22); font-size: .86rem; font-weight: 650; line-height: 1.45; animation: toast-in .18s ease-out; }
+.toast.is-error { background: #9f3328; }
+.toast.is-success { background: #276345; }
+.toast.is-leaving { opacity: 0; transform: translateY(-5px); transition: opacity .18s ease, transform .18s ease; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-5px); } }
 
 .page-shell {
   width: min(100% - 40px, 760px);
@@ -36,6 +42,7 @@ h1 { margin: 0; font-size: clamp(2rem, 7vw, 3.6rem); letter-spacing: -.055em; }
 .account-area { display: flex; align-items: center; }
 .auth-button { display: inline-flex; align-items: center; height: 34px; border: 1px solid #78917f; border-radius: 10px; padding: 8px 10px; color: #17352a; background: rgb(255 253 246 / .7); cursor: pointer; font-size: .82rem; font-weight: 700; line-height: 1; white-space: nowrap; }
 .auth-button:hover { border-color: #17352a; background: #edf1e9; }
+.auth-button:disabled, .auth-dialog-login:disabled { cursor: wait; opacity: .62; }
 .data-menu { position: relative; display: flex; align-items: center; flex: 0 0 auto; }
 .data-menu summary { display: inline-flex; align-items: center; height: 34px; gap: 4px; list-style: none; border: 1px solid #78917f; border-radius: 10px; padding: 8px 9px; color: #17352a; background: rgb(255 253 246 / .7); cursor: pointer; font-size: .82rem; font-weight: 700; line-height: 1; white-space: nowrap; }
 .data-menu summary::-webkit-details-marker { display: none; }

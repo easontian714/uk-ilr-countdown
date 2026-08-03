@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#12372a" />
-    <title>英国永居倒计时</title>
+    <title>英国永居申请计时器</title>
     <link rel="stylesheet" href="style.css?v=20260803-0240" />
   </head>
   <body>
@@ -13,12 +13,15 @@
         <p class="eyebrow">UK SETTLEMENT PLANNER</p>
         <div class="page-title-row">
           <h1>英国永居申请计时器</h1>
+          <div class="account-area">
+            <button type="button" class="auth-button" id="auth-button">使用 Google 登录</button>
+            <p id="auth-status" class="auth-status" aria-live="polite">登录后可私密同步资料</p>
+          </div>
           <details class="data-menu">
             <summary aria-label="资料管理" title="资料管理">
               <svg class="data-menu-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" aria-hidden="true"><path d="M7 3.5h7l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20V5a1.5 1.5 0 0 1 1.5-1.5Z" /><path d="M14 3.5V8h4" /><path d="M9 12h6M9 16h6" /></svg>
             </summary>
             <div class="data-menu-popover">
-              <button type="button" id="open-profile-code">输入识别码</button>
               <button type="button" id="import-profile">导入资料</button>
               <button type="button" id="export-profile">导出资料</button>
             </div>
@@ -142,20 +145,6 @@
       </form>
     </dialog>
 
-    <dialog id="profile-code-dialog" class="profile-code-dialog">
-      <form method="dialog" id="profile-code-form">
-        <h2 id="profile-code-title" tabindex="-1" autofocus>输入识别码</h2>
-        <p class="form-help">输入四位识别码以载入已保存的资料。</p>
-        <label class="sr-only" for="profile-code">识别码</label>
-        <input id="profile-code" inputmode="numeric" pattern="[0-9]{4}" autocomplete="off" maxlength="4" placeholder="四位数字" required />
-        <p id="profile-code-message" class="profile-code-message" aria-live="polite"></p>
-        <div class="dialog-actions">
-          <button class="secondary-button" value="cancel" formnovalidate>取消</button>
-          <button class="primary-button" value="load">载入</button>
-        </div>
-      </form>
-    </dialog>
-
     <dialog id="trip-dialog">
       <form method="dialog" id="trip-form">
         <h2 id="trip-dialog-title">新增行程</h2>
@@ -188,7 +177,7 @@
       </form>
     </dialog>
 
-    <script src="private-profiles.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
     <script src="app.js?v=20260803-0240"></script>
   </body>
 </html>

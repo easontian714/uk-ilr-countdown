@@ -32,6 +32,10 @@ button, input, select { font: inherit; }
 
 h1 { margin: 0; font-size: clamp(2rem, 7vw, 3.6rem); letter-spacing: -.055em; }
 .page-title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.account-area { display: grid; justify-items: end; gap: 5px; }
+.auth-button { border: 1px solid #78917f; border-radius: 10px; padding: 8px 10px; color: #17352a; background: rgb(255 253 246 / .7); cursor: pointer; font-size: .82rem; font-weight: 700; white-space: nowrap; }
+.auth-button:hover { border-color: #17352a; background: #edf1e9; }
+.auth-status { max-width: 180px; margin: 0; color: #627e6c; font-size: .7rem; line-height: 1.25; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .data-menu { position: relative; flex: 0 0 auto; }
 .data-menu summary { display: flex; align-items: center; gap: 4px; list-style: none; border: 1px solid #b7c3b5; border-radius: 10px; padding: 8px 8px 8px 9px; color: #405c4d; background: rgb(255 253 246 / .7); cursor: pointer; }
 .data-menu summary::-webkit-details-marker { display: none; }
@@ -163,6 +167,9 @@ dialog label:not(:first-of-type) { margin-top: 16px; }
   .page-shell { width: min(100% - 28px, 760px); padding-top: 42px; }
   .countdown-card { padding: 30px 25px; }
   .page-title-row { align-items: flex-start; }
+  .account-area { gap: 4px; }
+  .auth-button { padding: 7px 8px; font-size: .75rem; }
+  .auth-status { max-width: 118px; font-size: .64rem; }
   .data-menu { margin-top: 5px; }
   .dates-grid { grid-template-columns: 1fr; }
   .date-card { min-height: auto; }

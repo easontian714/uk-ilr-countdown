@@ -179,7 +179,6 @@ dialog label:not(:first-of-type) { margin-top: 16px; }
   .account-area, .data-menu { height: 32px; }
   .page-controls { gap: 6px; }
   .auth-button, .data-menu summary { height: 100%; padding: 7px 8px; font-size: .75rem; }
-  .data-menu { margin-top: 5px; }
   .dates-grid { grid-template-columns: 1fr; }
   .date-card { min-height: auto; }
   .date-card strong { margin-top: 8px; }

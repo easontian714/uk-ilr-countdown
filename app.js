@@ -339,7 +339,7 @@ cloud.auth.onAuthStateChange(async (_event, session) => {
   if (currentUser && currentUser.id !== previousUserId) {
     try { await loadCloudProfile(); } catch (error) { console.error(error); alert("无法读取云端资料，请稍后刷新重试。"); }
   }
-  if (!currentUser) { profileState = readLocalProfile(); render(); renderTrips(); openAuthPrompt(); }
+  if (!currentUser) { profileState = readLocalProfile(); render(); renderTrips(); }
   renderAuthState();
 });
 

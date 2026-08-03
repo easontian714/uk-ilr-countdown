@@ -203,6 +203,7 @@ function showToast(message, type = "info", duration = 3200) {
   toast.setAttribute("role", type === "error" ? "alert" : "status");
   toast.textContent = message;
   region.append(toast);
+  if (duration <= 0) return;
   toastTimer = window.setTimeout(() => {
     toast.classList.add("is-leaving");
     window.setTimeout(() => toast.remove(), 200);
@@ -276,11 +277,13 @@ function loadCloudProfileOnce(userId) {
   cloudLoadPromise = (async () => {
     try {
       await loadCloudProfile(userId);
+      return currentUser?.id === userId;
     } catch (error) {
       // Ignore failures from a stale request when the user has already changed or signed out.
-      if (currentUser?.id !== userId) return;
+      if (currentUser?.id !== userId) return false;
       console.error(error);
       showToast("登录成功，但云端资料暂时无法读取。已保留本地资料，请稍后刷新重试。", "error", 6000);
+      return false;
     } finally {
       if (cloudLoadUserId === userId) {
         cloudLoadPromise = null;
@@ -428,7 +431,9 @@ async function initialise() {
     if (currentUser) {
       localStorage.setItem(AUTH_PROMPT_SEEN_KEY, "true");
       clearAuthCallbackFromUrl();
-      await loadCloudProfileOnce(currentUser.id);
+      showToast("正在读取云端资料…", "info", 0);
+      const loaded = await loadCloudProfileOnce(currentUser.id);
+      if (loaded && currentUser) showToast("云端资料读取成功。", "success");
     } else openAuthPrompt();
   } catch (error) {
     console.error(error);

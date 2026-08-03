@@ -2,6 +2,24 @@ const DEFAULT_VISA_CATEGORY = "skilled-worker";
 const TRIPS_PER_PAGE = 10;
 const LOCAL_PROFILE_STORAGE_KEY = "ilr-countdown-local-profile-v2";
 const AUTH_PROMPT_SEEN_KEY = "ilr-countdown-auth-prompt-seen";
+const IS_LOCAL_DEVELOPMENT = ["127.0.0.1", "localhost"].includes(window.location.hostname);
+const VISA_CATEGORIES = {
+  "skilled-worker": {
+    label: "Skilled Worker Visa",
+    policyLabel: "查看 GOV.UK 永居政策",
+    policyUrl: "https://www.gov.uk/indefinite-leave-to-remain-tier-2-t2-skilled-worker-visa",
+  },
+  "skilled-worker-dependant": {
+    label: "Skilled Worker Dependant Visa",
+    policyLabel: "查看 GOV.UK 永居政策",
+    policyUrl: "https://www.gov.uk/indefinite-leave-to-remain-family/partner-dependant-work-visa",
+  },
+  "graduate-visa": {
+    label: "Graduate Visa (PSW)",
+    policyLabel: "查看 GOV.UK 永居政策",
+    policyUrl: "https://www.gov.uk/indefinite-leave-to-remain-tier-2-t2-skilled-worker-visa/time-uk",
+  },
+};
 const SUPABASE_URL = "https://eehroaunwvltcchrwocr.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_vdYBIgEmwnEhOU9zR2jmUg_ZlcbFRBf";
 const cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -59,6 +77,18 @@ function readLocalProfile() {
 
 function persistLocalProfile() {
   localStorage.setItem(LOCAL_PROFILE_STORAGE_KEY, JSON.stringify(profileState));
+}
+
+function getVisaCategoryDetails() {
+  return VISA_CATEGORIES[profileState.visaCategory] || VISA_CATEGORIES[DEFAULT_VISA_CATEGORY];
+}
+
+function renderVisaSettingsFields(visaCategory) {
+  const isGraduateVisa = visaCategory === "graduate-visa";
+  document.querySelector("#start-date-input-label").textContent = isGraduateVisa ? "PSW 起算日" : "合资格居留起算日";
+  document.querySelector("#settings-form-help").textContent = isGraduateVisa
+    ? "PSW 不计入 Skilled Worker 5 年永居时间。"
+    : "系统会按“满 5 年前 28 天”计算最早申请日。";
 }
 
 function getTrips() { return profileState.trips; }
@@ -152,6 +182,7 @@ function renderTrips() {
 
 function render() {
   const startDate = parseLocalDate(profileState.startDate);
+  const isGraduateVisa = profileState.visaCategory === "graduate-visa";
   const fiveYearDate = addYears(startDate, 5);
   const earliestDate = subtractDays(fiveYearDate, 28);
   const today = todayAtMidnight();
@@ -163,8 +194,29 @@ function render() {
   document.querySelector("#five-year-date").textContent = formatDate(fiveYearDate);
   document.querySelector("#earliest-date").textContent = formatDate(earliestDate);
   document.querySelector("#start-date-input").value = profileState.startDate;
+  const visaCategory = getVisaCategoryDetails();
   document.querySelector("#visa-category-input").value = profileState.visaCategory;
-  document.querySelector("#visa-category-label").textContent = "Skilled Worker";
+  document.querySelector("#visa-category-label").textContent = visaCategory.label;
+  document.querySelector("#visa-policy-link").href = visaCategory.policyUrl;
+  document.querySelector("#visa-policy-link").textContent = visaCategory.policyLabel;
+
+  document.querySelector("#start-date-card-label").textContent = isGraduateVisa ? "PSW 起算日" : "合资格居留起算日";
+  document.querySelector("#five-year-card-label").textContent = isGraduateVisa ? "合资格居留起算日" : "满 5 年日期";
+  document.querySelector("#earliest-card-label").textContent = isGraduateVisa ? "最早申请日期" : "最早申请日期";
+  renderVisaSettingsFields(profileState.visaCategory);
+  document.querySelector("#countdown-value").hidden = isGraduateVisa;
+  document.querySelector("#progress-detail").hidden = isGraduateVisa;
+
+  if (isGraduateVisa) {
+    document.querySelector("#five-year-date").textContent = "尚未开始";
+    document.querySelector("#earliest-date").textContent = "—";
+    document.querySelector("#eligibility-progress").value = 0;
+    document.querySelector("#progress-percent").textContent = "—";
+    document.querySelector("#countdown-detail").textContent = "PSW 不计入 5 年工作永居，请在获得符合要求的签证后更新签证类别和起算日。";
+    renderAuthState();
+    return;
+  }
+
   document.querySelector("#eligibility-progress").value = progressPercent;
   document.querySelector("#progress-percent").textContent = `${progressPercent.toFixed(1)}%`;
   document.querySelector("#progress-detail").textContent = `已过 ${elapsedDays.toLocaleString("zh-CN")} / ${totalDays.toLocaleString("zh-CN")} 天`;
@@ -226,13 +278,13 @@ function mapTripForDatabase(trip) {
 }
 
 async function saveCloudProfile() {
-  if (!currentUser) { persistLocalProfile(); return; }
+  if (!currentUser || IS_LOCAL_DEVELOPMENT) { persistLocalProfile(); return; }
   const { error } = await cloud.from("ilr_profiles").upsert({ user_id: currentUser.id, visa_category: profileState.visaCategory, qualifying_start_date: profileState.startDate, updated_at: new Date().toISOString() });
   if (error) throw error;
 }
 
 async function saveCloudTrips() {
-  if (!currentUser) { persistLocalProfile(); return; }
+  if (!currentUser || IS_LOCAL_DEVELOPMENT) { persistLocalProfile(); return; }
   const { error: deleteError } = await cloud.from("ilr_trips").delete().eq("user_id", currentUser.id);
   if (deleteError) throw deleteError;
   if (!profileState.trips.length) return;
@@ -352,12 +404,14 @@ document.querySelector("#auth-dialog-close").addEventListener("click", closeAuth
 const dialog = document.querySelector("#settings-dialog");
 function openSettingsDialog() { document.querySelector("#start-date-input").value = profileState.startDate; document.querySelector("#visa-category-input").value = profileState.visaCategory; dialog.showModal(); document.querySelector("#settings-dialog-title").focus({ preventScroll: true }); }
 document.querySelectorAll(".open-settings").forEach((button) => button.addEventListener("click", openSettingsDialog));
+document.querySelector("#visa-category-input").addEventListener("change", (event) => renderVisaSettingsFields(event.target.value));
 document.querySelector("#settings-form").addEventListener("submit", async (event) => {
   if (event.submitter?.value !== "save") return;
   event.preventDefault();
   const value = document.querySelector("#start-date-input").value;
   if (!value) return;
-  profileState.startDate = value; profileState.visaCategory = document.querySelector("#visa-category-input").value;
+  const selectedVisaCategory = document.querySelector("#visa-category-input").value;
+  profileState.startDate = value; profileState.visaCategory = selectedVisaCategory;
   dialog.close(); render(); renderTrips(); await saveCloudProfile();
 });
 
@@ -431,9 +485,11 @@ async function initialise() {
     if (currentUser) {
       localStorage.setItem(AUTH_PROMPT_SEEN_KEY, "true");
       clearAuthCallbackFromUrl();
-      showToast("正在读取云端资料…", "info", 0);
-      const loaded = await loadCloudProfileOnce(currentUser.id);
-      if (loaded && currentUser) showToast("云端资料读取成功。", "success");
+      if (!IS_LOCAL_DEVELOPMENT) {
+        showToast("正在读取云端资料…", "info", 0);
+        const loaded = await loadCloudProfileOnce(currentUser.id);
+        if (loaded && currentUser) showToast("云端资料读取成功。", "success");
+      }
     } else openAuthPrompt();
   } catch (error) {
     console.error(error);
@@ -451,7 +507,7 @@ cloud.auth.onAuthStateChange((event, session) => {
     closeAuthPrompt();
     if (event === "SIGNED_IN") showToast("Google 登录成功，正在同步云端资料…", "success");
   }
-  if (currentUser && currentUser.id !== previousUserId) {
+  if (currentUser && currentUser.id !== previousUserId && !IS_LOCAL_DEVELOPMENT) {
     // Supabase auth callbacks must stay synchronous. Deferring database work avoids
     // deadlocking the auth client while it still holds its internal session lock.
     const signedInUserId = currentUser.id;

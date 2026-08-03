@@ -65,6 +65,7 @@ h1 { margin: 0; font-size: clamp(2rem, 7vw, 3.6rem); letter-spacing: -.055em; }
 }
 
 .countdown-value { display: flex; align-items: flex-end; gap: 14px; }
+.countdown-value[hidden] { display: none; }
 .countdown-number { margin: 0; font-size: clamp(4.5rem, 18vw, 8.5rem); font-weight: 760; line-height: .88; letter-spacing: -.085em; }
 .countdown-label { margin: 0 0 7px; font-size: 1.2rem; font-weight: 650; }
 .countdown-detail { margin: 20px 0 0; color: #d7e6d4; }

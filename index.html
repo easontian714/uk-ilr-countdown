@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#12372a" />
     <title>英国永居申请计时器</title>
-    <link rel="stylesheet" href="style.css?v=20260803-0401" />
+    <link rel="stylesheet" href="style.css?v=20260803-0413" />
   </head>
   <body>
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
@@ -31,7 +31,7 @@
       </header>
 
       <section class="countdown-card" aria-live="polite">
-        <div class="countdown-value">
+        <div class="countdown-value" id="countdown-value">
           <p class="countdown-number" id="days-remaining">--</p>
           <p class="countdown-label" id="countdown-label">天</p>
         </div>
@@ -53,28 +53,28 @@
             <button class="edit-date-button open-settings" type="button">修改</button>
           </div>
           <strong>
-            <span id="visa-category-label">Skilled Worker</span>
+            <span id="visa-category-label">Skilled Worker Visa</span>
             <span class="info-tooltip visa-policy-tooltip">
               <button class="info-button" type="button" aria-label="查看 Skilled Worker 永居政策">?</button>
               <span class="tooltip-content" role="tooltip">
-                <a href="https://www.gov.uk/indefinite-leave-to-remain-tier-2-t2-skilled-worker-visa" target="_blank" rel="noopener noreferrer">查看 GOV.UK 永居政策 ↗</a>
+                <a id="visa-policy-link" href="https://www.gov.uk/indefinite-leave-to-remain-tier-2-t2-skilled-worker-visa" target="_blank" rel="noopener noreferrer">查看 GOV.UK 永居政策</a>
               </span>
             </span>
           </strong>
         </article>
         <article class="date-card">
           <div class="date-card-heading">
-            <p>合资格居留起算日</p>
+            <p id="start-date-card-label">合资格居留起算日</p>
             <button class="edit-date-button open-settings" type="button">修改</button>
           </div>
           <strong id="start-date">--</strong>
         </article>
         <article class="date-card">
-          <p>满 5 年日期</p>
+          <p id="five-year-card-label">满 5 年日期</p>
           <strong id="five-year-date">--</strong>
         </article>
         <article class="date-card accent">
-          <p>最早申请日期</p>
+          <p id="earliest-card-label">最早申请日期</p>
           <strong id="earliest-date">--</strong>
         </article>
       </section>
@@ -133,11 +133,13 @@
         <h2 id="settings-dialog-title" tabindex="-1" autofocus>签证信息</h2>
         <label for="visa-category-input">签证类别</label>
         <select id="visa-category-input" name="visa-category">
-          <option value="skilled-worker">Skilled Worker visa</option>
+          <option value="skilled-worker">Skilled Worker Visa</option>
+          <option value="skilled-worker-dependant">Skilled Worker Dependant Visa</option>
+          <option value="graduate-visa">Graduate Visa (PSW)</option>
         </select>
-        <label for="start-date-input">合资格居留起算日</label>
+        <label id="start-date-input-label" for="start-date-input">合资格居留起算日</label>
         <input id="start-date-input" name="start-date" type="date" required />
-        <p class="form-help">系统会按“满 5 年前 28 天”计算最早申请日。</p>
+        <p id="settings-form-help" class="form-help">系统会按“满 5 年前 28 天”计算最早申请日。</p>
         <div class="dialog-actions">
           <button class="secondary-button" value="cancel">取消</button>
           <button class="primary-button" value="save">保存</button>
@@ -188,6 +190,6 @@
     </dialog>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
-    <script src="app.js?v=20260803-0401"></script>
+    <script src="app.js?v=20260803-0413"></script>
   </body>
 </html>

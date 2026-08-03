@@ -2,9 +2,27 @@
 
 一个完全本地运行的静态网页原型，用于显示距英国永居（ILR）最早申请日的倒计时。
 
-## 打开方式
+## 本地调试（推荐）
 
-直接双击 `index.html`，或在浏览器中打开它。
+在项目目录中运行：
+
+```bash
+./dev-server.sh
+```
+
+然后在浏览器打开 [http://127.0.0.1:3000](http://127.0.0.1:3000)。修改 `index.html`、`style.css` 或 `app.js` 后，刷新浏览器即可查看效果；确认无误后再提交和推送到 GitHub Pages。
+
+首次在本地测试 Google 登录前，请在 Supabase Dashboard 的 **Authentication → URL Configuration → Redirect URLs** 中加入：
+
+```text
+http://127.0.0.1:3000/**
+```
+
+这只允许本机浏览器完成登录回调，不会改变生产站点地址，也不需要修改 Google OAuth 的回调地址。
+
+## 直接打开
+
+未使用云端登录和同步时，也可以直接双击 `index.html`。如需测试登录与同步，请使用上面的本地调试服务器。
 
 ## 已有功能
 

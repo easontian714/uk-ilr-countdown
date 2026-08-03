@@ -13,7 +13,7 @@ body {
   background: radial-gradient(circle at 85% 5%, #d9e8cf 0, transparent 31rem), #f5f2ea;
 }
 
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 
 .page-shell {
   width: min(100% - 40px, 760px);

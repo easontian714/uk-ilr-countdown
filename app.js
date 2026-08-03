@@ -4,7 +4,14 @@ const LOCAL_PROFILE_STORAGE_KEY = "ilr-countdown-local-profile-v2";
 const AUTH_PROMPT_SEEN_KEY = "ilr-countdown-auth-prompt-seen";
 const SUPABASE_URL = "https://eehroaunwvltcchrwocr.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_vdYBIgEmwnEhOU9zR2jmUg_ZlcbFRBf";
-const cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: window.localStorage,
+  },
+});
 
 let currentUser = null;
 let currentTripsPage = 1;
@@ -320,8 +327,8 @@ document.addEventListener("pointerdown", (event) => document.querySelectorAll(".
 
 async function initialise() {
   render(); renderTrips();
-  const { data: { user } } = await cloud.auth.getUser();
-  currentUser = user;
+  const { data: { session } } = await cloud.auth.getSession();
+  currentUser = session?.user || null;
   if (currentUser) {
     localStorage.setItem(AUTH_PROMPT_SEEN_KEY, "true");
     try { await loadCloudProfile(); } catch (error) { console.error(error); alert("无法读取云端资料，请稍后刷新重试。"); }

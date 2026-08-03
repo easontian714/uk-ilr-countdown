@@ -232,9 +232,23 @@ async function loadCloudProfile() {
 }
 
 async function handleAuth() {
-  if (currentUser) { await cloud.auth.signOut(); return; }
+  if (currentUser) {
+    const { error } = await cloud.auth.signOut({ scope: "local" });
+    if (error) {
+      console.error(error);
+      alert("退出登录失败，请稍后重试。");
+      return;
+    }
+    currentUser = null;
+    window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+    renderAuthState();
+    return;
+  }
   const { error } = await cloud.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}${window.location.pathname}` } });
-  if (error) alert("无法打开 Google 登录，请稍后重试。");
+  if (error) {
+    console.error(error);
+    alert("无法打开 Google 登录，请稍后重试。");
+  }
 }
 
 const authDialog = document.querySelector("#auth-dialog");

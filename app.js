@@ -210,18 +210,6 @@ async function saveAll() {
   catch (error) { console.error(error); alert("保存到云端失败，请检查网络后重试。"); }
 }
 
-function getLegacyProfile() {
-  try {
-    const startKey = Object.keys(localStorage).find((key) => key.startsWith("ilr-countdown-start-date-"));
-    if (!startKey) return null;
-    const profileSuffix = startKey.replace("ilr-countdown-start-date-", "");
-    const startDate = localStorage.getItem(startKey);
-    const trips = JSON.parse(localStorage.getItem(`ilr-countdown-trips-${profileSuffix}`));
-    if (!startDate || !Array.isArray(trips)) return null;
-    return { visaCategory: localStorage.getItem(`ilr-countdown-visa-category-${profileSuffix}`) || DEFAULT_VISA_CATEGORY, startDate, trips };
-  } catch { return null; }
-}
-
 async function loadCloudProfile() {
   const [{ data: profile, error: profileError }, { data: trips, error: tripsError }] = await Promise.all([
     cloud.from("ilr_profiles").select("visa_category, qualifying_start_date").maybeSingle(),
@@ -231,13 +219,7 @@ async function loadCloudProfile() {
   if (profile) {
     profileState = { visaCategory: profile.visa_category, startDate: profile.qualifying_start_date, trips: (trips || []).map(mapDatabaseTrip) };
   } else {
-    const legacyProfile = getLegacyProfile();
-    if (legacyProfile && confirm("发现本浏览器的旧版资料。要将它私密保存到当前登录账号吗？")) {
-      profileState = legacyProfile;
-      await saveAll();
-    } else {
-      profileState = readLocalProfile();
-    }
+    profileState = readLocalProfile();
   }
   currentTripsPage = 1; render(); renderTrips();
 }

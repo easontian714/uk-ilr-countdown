@@ -1,6 +1,7 @@
 const DEFAULT_VISA_CATEGORY = "skilled-worker";
 const TRIPS_PER_PAGE = 10;
 const LOCAL_PROFILE_STORAGE_KEY = "ilr-countdown-local-profile-v2";
+const AUTH_PROMPT_SEEN_KEY = "ilr-countdown-auth-prompt-seen";
 const SUPABASE_URL = "https://eehroaunwvltcchrwocr.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_vdYBIgEmwnEhOU9zR2jmUg_ZlcbFRBf";
 const cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
@@ -249,7 +250,10 @@ async function handleAuth() {
 
 const authDialog = document.querySelector("#auth-dialog");
 function openAuthPrompt() {
-  if (!currentUser && !authDialog.open) authDialog.showModal();
+  if (!currentUser && !localStorage.getItem(AUTH_PROMPT_SEEN_KEY) && !authDialog.open) {
+    localStorage.setItem(AUTH_PROMPT_SEEN_KEY, "true");
+    authDialog.showModal();
+  }
 }
 function closeAuthPrompt() {
   if (authDialog.open) authDialog.close();
@@ -337,6 +341,7 @@ async function initialise() {
   const { data: { user } } = await cloud.auth.getUser();
   currentUser = user;
   if (currentUser) {
+    localStorage.setItem(AUTH_PROMPT_SEEN_KEY, "true");
     try { await loadCloudProfile(); } catch (error) { console.error(error); alert("无法读取云端资料，请稍后刷新重试。"); }
   } else openAuthPrompt();
   renderAuthState();
@@ -345,7 +350,10 @@ async function initialise() {
 cloud.auth.onAuthStateChange(async (_event, session) => {
   const previousUserId = currentUser?.id;
   currentUser = session?.user || null;
-  if (currentUser) closeAuthPrompt();
+  if (currentUser) {
+    localStorage.setItem(AUTH_PROMPT_SEEN_KEY, "true");
+    closeAuthPrompt();
+  }
   if (currentUser && currentUser.id !== previousUserId) {
     try { await loadCloudProfile(); } catch (error) { console.error(error); alert("无法读取云端资料，请稍后刷新重试。"); }
   }

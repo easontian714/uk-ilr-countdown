@@ -175,9 +175,10 @@ dialog label:not(:first-of-type) { margin-top: 16px; }
   .page-shell { width: min(100% - 28px, 760px); padding-top: 42px; }
   .countdown-card { padding: 30px 25px; }
   .page-title-row { display: block; }
-  .page-controls { justify-content: flex-end; margin-top: 14px; }
+  .page-controls { align-items: flex-start; justify-content: flex-start; margin-top: 14px; }
+  .account-area, .data-menu { height: 32px; }
   .page-controls { gap: 6px; }
-  .auth-button, .data-menu summary { height: 32px; padding: 7px 8px; font-size: .75rem; }
+  .auth-button, .data-menu summary { height: 100%; padding: 7px 8px; font-size: .75rem; }
   .data-menu { margin-top: 5px; }
   .dates-grid { grid-template-columns: 1fr; }
   .date-card { min-height: auto; }

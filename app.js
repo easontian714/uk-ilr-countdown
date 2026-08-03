@@ -1,69 +1,17 @@
-const DEFAULT_START_DATE = "2026-07-28";
+const DEFAULT_START_DATE = "";
 const STORAGE_KEY = "ilr-countdown-start-date";
 const VISA_CATEGORY_STORAGE_KEY = "ilr-countdown-visa-category";
 const DEFAULT_VISA_CATEGORY = "skilled-worker";
 const TRIPS_STORAGE_KEY = "ilr-countdown-trips";
 const TRIPS_SEED_VERSION_KEY = "ilr-countdown-trips-seed-version";
-const CURRENT_TRIPS_SEED_VERSION = "10";
+const CURRENT_TRIPS_SEED_VERSION = "11";
 const TRIPS_PER_PAGE = 10;
+const ACTIVE_PROFILE_STORAGE_KEY = "ilr-countdown-active-profile";
+const PROFILE_INITIALIZED_STORAGE_PREFIX = "ilr-countdown-profile-initialized-";
+const MANUAL_PROFILE_CODE = "manual";
+const PRIVATE_PROFILES = window.ILR_PRIVATE_PROFILES || {};
 let currentTripsPage = 1;
-const DEFAULT_TRIPS = [{
-  id: "philadelphia-2026-08",
-  country: "美国",
-  cities: ["费城"],
-  startDate: "2026-08-23",
-  endDate: "2026-09-06",
-  note: "美国旅行",
-}, {
-  id: "athens-2025-12",
-  country: "希腊",
-  cities: ["雅典"],
-  startDate: "2025-12-01",
-  endDate: "2025-12-03",
-  note: "希腊旅行",
-}, {
-  id: "eindhoven-2026-02",
-  country: "荷兰",
-  cities: ["埃因霍温"],
-  startDate: "2026-02-28",
-  endDate: "2026-03-01",
-  note: "荷兰旅行",
-}, {
-  id: "barcelona-2026-04",
-  country: "西班牙",
-  cities: ["巴塞罗那"],
-  startDate: "2026-04-18",
-  endDate: "2026-04-20",
-  note: "西班牙旅行",
-}, {
-  id: "frankfurt-2026-05",
-  country: "德国",
-  cities: ["法兰克福"],
-  startDate: "2026-05-15",
-  endDate: "2026-05-17",
-  note: "德国旅行",
-}, {
-  id: "china-2026-01",
-  country: "中国",
-  cities: ["上海", "珠海"],
-  startDate: "2026-01-15",
-  endDate: "2026-01-24",
-  note: "回国差旅",
-}, {
-  id: "naples-2026-05",
-  country: "意大利",
-  cities: ["那不勒斯"],
-  startDate: "2026-05-30",
-  endDate: "2026-06-01",
-  note: "意大利旅行",
-}, {
-  id: "paris-2026-04",
-  country: "法国",
-  cities: ["巴黎"],
-  startDate: "2026-04-03",
-  endDate: "2026-04-06",
-  note: "法国旅行",
-}];
+const DEFAULT_TRIPS = createExampleTrips();
 const TRIP_NOTE_UPDATES = Object.fromEntries(DEFAULT_TRIPS.map((trip) => [trip.id, trip.note]));
 const TRIP_DESTINATION_UPDATES = Object.fromEntries(DEFAULT_TRIPS.map((trip) => [trip.id, { country: trip.country, cities: trip.cities }]));
 
@@ -102,21 +50,56 @@ function todayAtMidnight() {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
+function createExampleTrips() {
+  const today = todayAtMidnight();
+  return [{
+    id: "example-completed-trip",
+    country: "示例国家",
+    cities: ["示例城市"],
+    startDate: toInputDate(addDays(today, -35)),
+    endDate: toInputDate(addDays(today, -31)),
+    note: "示例行程（可编辑或删除）",
+  }, {
+    id: "example-planned-trip",
+    country: "示例国家",
+    cities: ["示例城市"],
+    startDate: toInputDate(addDays(today, 28)),
+    endDate: toInputDate(addDays(today, 34)),
+    note: "示例行程（可编辑或删除）",
+  }];
+}
+
 function formatDate(date) {
   return dateFormatter.format(date);
 }
 
+function getActiveProfile() {
+  const code = sessionStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY);
+  if (code === MANUAL_PROFILE_CODE) return { manual: true };
+  return code ? PRIVATE_PROFILES[code] || null : null;
+}
+
+function getActiveProfileCode() {
+  return sessionStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY) || MANUAL_PROFILE_CODE;
+}
+
+function getProfileStorageKey(key, profileCode = getActiveProfileCode()) {
+  return `${key}-${profileCode}`;
+}
+
 function getTrips() {
-  const savedTrips = localStorage.getItem(TRIPS_STORAGE_KEY);
+  const tripsKey = getProfileStorageKey(TRIPS_STORAGE_KEY);
+  const seedVersionKey = getProfileStorageKey(TRIPS_SEED_VERSION_KEY);
+  const savedTrips = localStorage.getItem(tripsKey);
   if (savedTrips === null) {
-    localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(DEFAULT_TRIPS));
-    localStorage.setItem(TRIPS_SEED_VERSION_KEY, CURRENT_TRIPS_SEED_VERSION);
+    localStorage.setItem(tripsKey, JSON.stringify(DEFAULT_TRIPS));
+    localStorage.setItem(seedVersionKey, CURRENT_TRIPS_SEED_VERSION);
     return DEFAULT_TRIPS;
   }
   try {
     const trips = JSON.parse(savedTrips);
     if (!Array.isArray(trips)) return [];
-    if (localStorage.getItem(TRIPS_SEED_VERSION_KEY) !== CURRENT_TRIPS_SEED_VERSION) {
+    if (localStorage.getItem(seedVersionKey) !== CURRENT_TRIPS_SEED_VERSION) {
       const updatedTrips = trips.map((trip) => {
         const destinationUpdate = TRIP_DESTINATION_UPDATES[trip.id];
         return {
@@ -125,10 +108,12 @@ function getTrips() {
           ...(destinationUpdate ? { country: destinationUpdate.country, cities: destinationUpdate.cities } : {}),
         };
       });
-      const missingSeedTrips = DEFAULT_TRIPS.filter((seedTrip) => !updatedTrips.some((trip) => trip.id === seedTrip.id));
+      const missingSeedTrips = getActiveProfileCode() === MANUAL_PROFILE_CODE
+        ? DEFAULT_TRIPS.filter((seedTrip) => !updatedTrips.some((trip) => trip.id === seedTrip.id))
+        : [];
       const mergedTrips = [...updatedTrips, ...missingSeedTrips];
       saveTrips(mergedTrips);
-      localStorage.setItem(TRIPS_SEED_VERSION_KEY, CURRENT_TRIPS_SEED_VERSION);
+      localStorage.setItem(seedVersionKey, CURRENT_TRIPS_SEED_VERSION);
       return mergedTrips;
     }
     return trips;
@@ -138,7 +123,7 @@ function getTrips() {
 }
 
 function saveTrips(trips) {
-  localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(trips));
+  localStorage.setItem(getProfileStorageKey(TRIPS_STORAGE_KEY), JSON.stringify(trips));
 }
 
 function formatTripRange(trip) {
@@ -320,8 +305,10 @@ function renderTrips() {
 }
 
 function render() {
-  const startDateValue = localStorage.getItem(STORAGE_KEY) || DEFAULT_START_DATE;
-  const visaCategory = localStorage.getItem(VISA_CATEGORY_STORAGE_KEY) || DEFAULT_VISA_CATEGORY;
+  const profile = getActiveProfile();
+  document.querySelector("#add-trip").disabled = false;
+  const startDateValue = localStorage.getItem(getProfileStorageKey(STORAGE_KEY)) || profile?.startDate || toInputDate(todayAtMidnight());
+  const visaCategory = localStorage.getItem(getProfileStorageKey(VISA_CATEGORY_STORAGE_KEY)) || profile?.visaCategory || DEFAULT_VISA_CATEGORY;
   const startDate = parseLocalDate(startDateValue);
   const fiveYearDate = addYears(startDate, 5);
   const earliestDate = subtractDays(fiveYearDate, 28);
@@ -358,9 +345,10 @@ function render() {
 
 const dialog = document.querySelector("#settings-dialog");
 function openSettingsDialog() {
-  const startDateValue = localStorage.getItem(STORAGE_KEY) || DEFAULT_START_DATE;
+  const profile = getActiveProfile();
+  const startDateValue = localStorage.getItem(getProfileStorageKey(STORAGE_KEY)) || profile?.startDate || toInputDate(todayAtMidnight());
   document.querySelector("#start-date-input").value = startDateValue;
-  document.querySelector("#visa-category-input").value = localStorage.getItem(VISA_CATEGORY_STORAGE_KEY) || DEFAULT_VISA_CATEGORY;
+  document.querySelector("#visa-category-input").value = localStorage.getItem(getProfileStorageKey(VISA_CATEGORY_STORAGE_KEY)) || profile?.visaCategory || DEFAULT_VISA_CATEGORY;
   dialog.showModal();
   document.querySelector("#settings-dialog-title").focus({ preventScroll: true });
 }
@@ -373,10 +361,96 @@ document.querySelector("#settings-form").addEventListener("submit", (event) => {
   if (action !== "save") return;
   event.preventDefault();
   const value = document.querySelector("#start-date-input").value;
-  if (value) localStorage.setItem(STORAGE_KEY, value);
-  localStorage.setItem(VISA_CATEGORY_STORAGE_KEY, document.querySelector("#visa-category-input").value);
+  if (value) localStorage.setItem(getProfileStorageKey(STORAGE_KEY), value);
+  localStorage.setItem(getProfileStorageKey(VISA_CATEGORY_STORAGE_KEY), document.querySelector("#visa-category-input").value);
   dialog.close();
   render();
+  renderTrips();
+});
+
+const profileCodeDialog = document.querySelector("#profile-code-dialog");
+const dataMenu = document.querySelector(".data-menu");
+document.querySelector("#open-profile-code").addEventListener("click", () => {
+  document.querySelector("#profile-code").value = "";
+  document.querySelector("#profile-code-message").classList.remove("is-visible");
+  dataMenu.removeAttribute("open");
+  profileCodeDialog.showModal();
+  document.querySelector("#profile-code-title").focus({ preventScroll: true });
+});
+document.querySelector("#profile-code-form").addEventListener("submit", (event) => {
+  if (event.submitter?.value !== "load") return;
+  event.preventDefault();
+  const input = document.querySelector("#profile-code");
+  const message = document.querySelector("#profile-code-message");
+  const code = input.value.trim();
+  const profile = PRIVATE_PROFILES[code];
+  if (!profile) {
+    message.textContent = "未找到对应资料。";
+    message.classList.add("is-visible");
+    return;
+  }
+  if (localStorage.getItem(`${PROFILE_INITIALIZED_STORAGE_PREFIX}${code}`) !== "true") {
+    localStorage.setItem(getProfileStorageKey(STORAGE_KEY, code), profile.startDate);
+    localStorage.setItem(getProfileStorageKey(VISA_CATEGORY_STORAGE_KEY, code), profile.visaCategory || DEFAULT_VISA_CATEGORY);
+    localStorage.setItem(getProfileStorageKey(TRIPS_STORAGE_KEY, code), JSON.stringify(profile.trips || []));
+    localStorage.setItem(getProfileStorageKey(TRIPS_SEED_VERSION_KEY, code), CURRENT_TRIPS_SEED_VERSION);
+    localStorage.setItem(`${PROFILE_INITIALIZED_STORAGE_PREFIX}${code}`, "true");
+  }
+  sessionStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, code);
+  input.value = "";
+  message.classList.remove("is-visible");
+  profileCodeDialog.close();
+  render();
+  renderTrips();
+});
+
+function exportProfile() {
+  const profile = getActiveProfile();
+  const data = {
+    version: 1,
+    visaCategory: localStorage.getItem(getProfileStorageKey(VISA_CATEGORY_STORAGE_KEY)) || profile?.visaCategory || DEFAULT_VISA_CATEGORY,
+    startDate: localStorage.getItem(getProfileStorageKey(STORAGE_KEY)) || profile?.startDate || toInputDate(todayAtMidnight()),
+    trips: getTrips(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "ilr-profile-backup.json";
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+document.querySelector("#export-profile").addEventListener("click", () => {
+  exportProfile();
+  dataMenu.removeAttribute("open");
+});
+
+document.querySelector("#import-profile").addEventListener("click", () => {
+  dataMenu.removeAttribute("open");
+  document.querySelector("#import-profile-file").click();
+});
+
+document.querySelector("#import-profile-file").addEventListener("change", async (event) => {
+  const [file] = event.target.files;
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    const validTripList = Array.isArray(data.trips) && data.trips.every((trip) => trip && typeof trip.country === "string" && Array.isArray(trip.cities) && typeof trip.startDate === "string" && typeof trip.endDate === "string");
+    if (!data.startDate || !data.visaCategory || !validTripList) throw new Error("invalid profile");
+    const profileCode = MANUAL_PROFILE_CODE;
+    localStorage.setItem(getProfileStorageKey(STORAGE_KEY, profileCode), data.startDate);
+    localStorage.setItem(getProfileStorageKey(VISA_CATEGORY_STORAGE_KEY, profileCode), data.visaCategory);
+    localStorage.setItem(getProfileStorageKey(TRIPS_STORAGE_KEY, profileCode), JSON.stringify(data.trips));
+    localStorage.setItem(getProfileStorageKey(TRIPS_SEED_VERSION_KEY, profileCode), CURRENT_TRIPS_SEED_VERSION);
+    sessionStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, profileCode);
+    render();
+    renderTrips();
+    alert("资料导入成功。");
+  } catch {
+    alert("无法读取该资料文件。请确认它是由本工具导出的 JSON 文件。");
+  } finally {
+    event.target.value = "";
+  }
 });
 
 render();
@@ -485,31 +559,16 @@ document.querySelector("#trips-pagination").addEventListener("click", (event) =>
   renderTrips();
 });
 
-document.querySelector("#export-trips").addEventListener("click", () => {
-  const csvCell = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
-  const rows = getTrips()
-    .sort((a, b) => b.startDate.localeCompare(a.startDate))
-    .map((trip) => {
-      const { country, cities } = getTripDestination(trip);
-      return [country, cities.join("、"), trip.startDate, trip.endDate, trip.note];
-    });
-  const csv = [
-    ["国家", "城市", "出境日期", "回英国日期", "备注"],
-    ...rows,
-  ].map((row) => row.map(csvCell).join(",")).join("\r\n");
-  const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "ilr-travel-records.csv";
-  link.click();
-  URL.revokeObjectURL(link.href);
-  document.querySelector(".trip-actions-menu").removeAttribute("open");
-});
-
 document.querySelector("#clear-trips").addEventListener("click", () => {
   if (!confirm("确定要清空全部旅行记录吗？此操作无法撤销。")) return;
   saveTrips([]);
   currentTripsPage = 1;
   document.querySelector(".trip-actions-menu").removeAttribute("open");
   renderTrips();
+});
+
+document.addEventListener("pointerdown", (event) => {
+  document.querySelectorAll(".trip-actions-menu[open], .data-menu[open]").forEach((menu) => {
+    if (!menu.contains(event.target)) menu.removeAttribute("open");
+  });
 });

@@ -176,7 +176,7 @@ function renderAuthState() {
   if (currentUser) {
     button.textContent = "退出登录";
   } else {
-    button.textContent = "使用 Google 登录";
+    button.textContent = "Google 登录";
   }
 }
 

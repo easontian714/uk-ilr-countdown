@@ -32,11 +32,12 @@ button, input, select { font: inherit; }
 
 h1 { margin: 0; font-size: clamp(2rem, 7vw, 3.6rem); letter-spacing: -.055em; }
 .page-title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.page-controls { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .account-area { display: flex; align-items: center; }
 .auth-button { border: 1px solid #78917f; border-radius: 10px; padding: 8px 10px; color: #17352a; background: rgb(255 253 246 / .7); cursor: pointer; font-size: .82rem; font-weight: 700; white-space: nowrap; }
 .auth-button:hover { border-color: #17352a; background: #edf1e9; }
 .data-menu { position: relative; flex: 0 0 auto; }
-.data-menu summary { display: flex; align-items: center; gap: 4px; list-style: none; border: 1px solid #b7c3b5; border-radius: 10px; padding: 8px 8px 8px 9px; color: #405c4d; background: rgb(255 253 246 / .7); cursor: pointer; }
+.data-menu summary { display: flex; align-items: center; gap: 4px; list-style: none; border: 1px solid #b7c3b5; border-radius: 10px; padding: 8px 9px; color: #405c4d; background: rgb(255 253 246 / .7); cursor: pointer; font-size: .82rem; font-weight: 700; white-space: nowrap; }
 .data-menu summary::-webkit-details-marker { display: none; }
 .data-menu summary::after { color: #6d8075; content: "⌄"; font-size: 1rem; font-weight: 500; line-height: .8; }
 .data-menu-icon { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
@@ -166,7 +167,8 @@ dialog label:not(:first-of-type) { margin-top: 16px; }
   .page-shell { width: min(100% - 28px, 760px); padding-top: 42px; }
   .countdown-card { padding: 30px 25px; }
   .page-title-row { align-items: flex-start; }
-  .auth-button { padding: 7px 8px; font-size: .75rem; }
+  .page-controls { gap: 6px; }
+  .auth-button, .data-menu summary { padding: 7px 8px; font-size: .75rem; }
   .data-menu { margin-top: 5px; }
   .dates-grid { grid-template-columns: 1fr; }
   .date-card { min-height: auto; }

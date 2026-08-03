@@ -244,7 +244,13 @@ async function handleAuth() {
     renderAuthState();
     return;
   }
-  const { error } = await cloud.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}${window.location.pathname}` } });
+  const { error } = await cloud.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}${window.location.pathname}`,
+      queryParams: { prompt: "select_account" },
+    },
+  });
   if (error) {
     console.error(error);
     alert("无法打开 Google 登录，请稍后重试。");
